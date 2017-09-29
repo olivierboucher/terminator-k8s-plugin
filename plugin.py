@@ -1,5 +1,6 @@
 import yaml
 
+from threading import Timer
 from os.path import expanduser
 
 from gi.repository import Gtk
@@ -23,24 +24,24 @@ class K8sConfigEventHandler(FileSystemEventHandler):
 
     def __init__(self):
         FileSystemEventHandler.__init__(self)
-        kubeConfig = self.get_kube_config()
-        self.set_console_title(kubeConfig['current-context'])
+        t = Timer(1.0, self.set_console_title)
+        t.start()
 
     def on_modified(self, event):
         if event.src_path == KUBECONFIG:
-            kubeConfig = self.get_kube_config()
+            self.set_console_title()
 
-            self.set_console_title(kubeConfig['current-context'])
+    def set_console_title(self):
+        kubeConfig = self.get_kube_config()
 
-    def set_console_title(self, title):
         terminator = Terminator()
         if self.first:
             self.first = False
             for terminal in terminator.terminals:
-                terminal.titlebar.set_custom_string(title)
+                terminal.titlebar.set_custom_string(kubeConfig['current-context'])
         else:
             for terminal in terminator.terminals:
-                terminal.titlebar.label.set_text(title, force=True)
+                terminal.titlebar.label.set_text(kubeConfig['current-context'], force=True)
 
     def get_kube_config(self):
         with open(KUBECONFIG, 'r') as stream:
